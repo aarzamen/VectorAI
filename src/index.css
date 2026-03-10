@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+@theme {
+  /* ClaudeCrayons - Anthropic-inspired warm palette */
+  --color-claude-terracotta: #D97757;
+  --color-claude-terracotta-light: #E8A87C;
+  --color-claude-terracotta-dark: #B8583A;
+  --color-claude-cream: #FAF5EE;
+  --color-claude-cream-dark: #F0E8DB;
+  --color-claude-parchment: #E8DDD0;
+  --color-claude-bg: #1C1917;
+  --color-claude-surface: #292524;
+  --color-claude-surface-hover: #33302E;
+  --color-claude-border: #44403C;
+  --color-claude-border-light: #57534E;
+  --color-claude-text: #FAFAF9;
+  --color-claude-text-muted: #A8A29E;
+  --color-claude-text-dim: #78716C;
+  --color-claude-selected: rgba(217, 119, 87, 0.2);
+  --color-claude-selected-border: rgba(217, 119, 87, 0.5);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-claude-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-claude-border-light);
+}

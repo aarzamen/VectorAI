@@ -23,13 +23,14 @@ export function Canvas() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPathId, setCurrentPathId] = useState<string | null>(null);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+  const [currentLineId, setCurrentLineId] = useState<string | null>(null);
+  const [isDrawingLine, setIsDrawingLine] = useState(false);
   const [pointers, setPointers] = useState<
     Map<number, { x: number; y: number }>
   >(new Map());
   const [initialPinchDist, setInitialPinchDist] = useState<number | null>(null);
   const [initialPinchZoom, setInitialPinchZoom] = useState<number | null>(null);
 
-  // Helper to get canvas coordinates from screen coordinates
   const getCanvasCoords = (clientX: number, clientY: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
@@ -39,26 +40,22 @@ export function Canvas() {
     };
   };
 
-  // Handle touch and mouse events for panning
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 && e.pointerType === "mouse") return; // Only left click or touch
+    if (e.button !== 0 && e.pointerType === "mouse") return;
 
     const newPointers = new Map(pointers);
     newPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setPointers(newPointers);
 
     if (newPointers.size === 2) {
-      // Start pinch zoom
-      const pts = Array.from(newPointers.values()) as {
-        x: number;
-        y: number;
-      }[];
+      const pts = Array.from(newPointers.values()) as { x: number; y: number }[];
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       setInitialPinchDist(dist);
       setInitialPinchZoom(zoom);
       setIsDragging(false);
       setIsDraggingElement(false);
       setIsDrawing(false);
+      setIsDrawingLine(false);
       return;
     }
 
@@ -74,7 +71,7 @@ export function Canvas() {
         y: 0,
         rotation: 0,
         fill: "transparent",
-        stroke: "#ffffff",
+        stroke: "#D97757",
         strokeWidth: 2,
         opacity: 1,
         pathData: `M ${coords.x} ${coords.y}`,
@@ -82,7 +79,27 @@ export function Canvas() {
       return;
     }
 
-    // If clicking on an element, we might want to drag it instead of panning
+    if (activeTool === "line") {
+      setIsDrawingLine(true);
+      const coords = getCanvasCoords(e.clientX, e.clientY);
+      const id = crypto.randomUUID();
+      setCurrentLineId(id);
+      addElement({
+        id,
+        type: "line",
+        x: coords.x,
+        y: coords.y,
+        x2: coords.x,
+        y2: coords.y,
+        rotation: 0,
+        fill: "transparent",
+        stroke: "#D97757",
+        strokeWidth: 2,
+        opacity: 1,
+      });
+      return;
+    }
+
     const target = e.target as SVGElement;
     if (
       target !== e.currentTarget &&
@@ -117,16 +134,11 @@ export function Canvas() {
         initialPinchDist !== null &&
         initialPinchZoom !== null
       ) {
-        // Handle pinch zoom
-        const pts = Array.from(newPointers.values()) as {
-          x: number;
-          y: number;
-        }[];
+        const pts = Array.from(newPointers.values()) as { x: number; y: number }[];
         const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
         const scale = dist / initialPinchDist;
         const newZoom = Math.max(0.1, Math.min(10, initialPinchZoom * scale));
 
-        // Zoom towards center of pinch
         const centerX = (pts[0].x + pts[1].x) / 2;
         const centerY = (pts[0].y + pts[1].y) / 2;
 
@@ -134,13 +146,10 @@ export function Canvas() {
         if (rect) {
           const mouseX = centerX - rect.left;
           const mouseY = centerY - rect.top;
-
           const dx = (mouseX - pan.x) * (newZoom / zoom - 1);
           const dy = (mouseY - pan.y) * (newZoom / zoom - 1);
-
           setPan({ x: pan.x - dx, y: pan.y - dy });
         }
-
         setZoom(newZoom);
         return;
       }
@@ -157,6 +166,12 @@ export function Canvas() {
       return;
     }
 
+    if (isDrawingLine && currentLineId) {
+      const coords = getCanvasCoords(e.clientX, e.clientY);
+      updateElement(currentLineId, { x2: coords.x, y2: coords.y } as Partial<CanvasElement>);
+      return;
+    }
+
     if (!isDragging && !isDraggingElement) return;
 
     const dx = e.clientX - lastPos.x;
@@ -165,7 +180,6 @@ export function Canvas() {
     if (isDragging) {
       setPan({ x: pan.x + dx, y: pan.y + dy });
     } else if (isDraggingElement && draggedElementId) {
-      // Drag selected elements
       const id = draggedElementId;
       const el = elements[id];
       if (el) {
@@ -192,10 +206,11 @@ export function Canvas() {
       setDraggedElementId(null);
       setIsDrawing(false);
       setCurrentPathId(null);
+      setIsDrawingLine(false);
+      setCurrentLineId(null);
     }
   };
 
-  // Render elements
   const renderElement = (element: CanvasElement, isLocked: boolean) => {
     const isSelected = selectedElementIds.includes(element.id);
     const commonProps = {
@@ -203,7 +218,7 @@ export function Canvas() {
       'data-id': element.id,
       transform: `translate(${element.x}, ${element.y}) rotate(${element.rotation})`,
       fill: element.fill,
-      stroke: isSelected ? "#3b82f6" : element.stroke, // Highlight if selected
+      stroke: isSelected ? "#D97757" : element.stroke,
       strokeWidth: isSelected
         ? Math.max(2 / zoom, element.strokeWidth)
         : element.strokeWidth,
@@ -242,6 +257,17 @@ export function Canvas() {
             {element.text}
           </text>
         );
+      case "line":
+        return (
+          <line
+            x1={0}
+            y1={0}
+            x2={element.x2 - element.x}
+            y2={element.y2 - element.y}
+            {...commonProps}
+            fill="none"
+          />
+        );
       default:
         return null;
     }
@@ -254,24 +280,16 @@ export function Canvas() {
     const handleNativeWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (e.ctrlKey) {
-        // Zoom
         const zoomFactor = 0.01;
-        const newZoom = Math.max(
-          0.1,
-          Math.min(10, zoom - e.deltaY * zoomFactor),
-        );
-
+        const newZoom = Math.max(0.1, Math.min(10, zoom - e.deltaY * zoomFactor));
         const rect = container.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-
         const dx = (mouseX - pan.x) * (newZoom / zoom - 1);
         const dy = (mouseY - pan.y) * (newZoom / zoom - 1);
-
         setPan({ x: pan.x - dx, y: pan.y - dy });
         setZoom(newZoom);
       } else {
-        // Pan
         setPan({ x: pan.x - e.deltaX, y: pan.y - e.deltaY });
       }
     };
@@ -283,7 +301,7 @@ export function Canvas() {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-zinc-900 overflow-hidden touch-none"
+      className="w-full h-full bg-claude-bg overflow-hidden touch-none"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -297,27 +315,15 @@ export function Canvas() {
         }}
       >
         <defs>
-          <pattern
-            id="grid"
-            width="40"
-            height="40"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 40 0 L 0 0 0 40"
-              fill="none"
-              stroke="rgba(255,255,255,0.05)"
-              strokeWidth="1"
-            />
+          <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="12" cy="12" r="0.6" fill="rgba(217,119,87,0.1)" />
+          </pattern>
+          <pattern id="majorGrid" width="96" height="96" patternUnits="userSpaceOnUse">
+            <rect width="96" height="96" fill="url(#dotGrid)" />
+            <circle cx="0" cy="0" r="1.2" fill="rgba(217,119,87,0.15)" />
           </pattern>
         </defs>
-        <rect
-          width="10000"
-          height="10000"
-          x="-5000"
-          y="-5000"
-          fill="url(#grid)"
-        />
+        <rect width="10000" height="10000" x="-5000" y="-5000" fill="url(#majorGrid)" />
 
         {layers.map(
           (layer) =>

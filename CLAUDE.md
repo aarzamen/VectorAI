@@ -1,16 +1,15 @@
-# CLAUDE.md — VectorAI
+# CLAUDE.md — ClaudeCrayons
 
 ## Project Overview
 
-VectorAI is a mobile-first Progressive Web App (PWA) vector graphics editor with AI-assisted SVG generation via Google's Gemini API. It supports freehand drawing, shape creation, text elements, layer management, and export to SVG/PNG/JPEG. Designed for use within AI Studio.
+ClaudeCrayons is a mobile-first Progressive Web App (PWA) vector graphics editor with an Anthropic-inspired warm design aesthetic. It supports freehand drawing, shape creation (rectangles, circles, lines), text elements, layer management, rich templates, and export to SVG/PNG/JPEG and Excalidraw-compatible JSON.
 
 ## Tech Stack
 
 - **Framework**: React 19 with TypeScript 5.8
 - **Build Tool**: Vite 6.2
-- **Styling**: Tailwind CSS 4.1 (utility-first, `@tailwindcss/vite` plugin)
+- **Styling**: Tailwind CSS 4.1 (utility-first, `@tailwindcss/vite` plugin) with custom ClaudeCrayons theme
 - **State Management**: Zustand 5.0
-- **AI Integration**: `@google/genai` (Google Gemini API)
 - **Animations**: `motion` (Framer Motion)
 - **Icons**: `lucide-react`
 - **Storage**: `idb-keyval` (IndexedDB wrapper for document persistence)
@@ -34,30 +33,35 @@ There are no test suites configured. Linting is TypeScript type-checking via `ts
 src/
 ├── main.tsx                  # React entry point
 ├── App.tsx                   # Root component
-├── index.css                 # Tailwind CSS imports
+├── index.css                 # Tailwind CSS imports + ClaudeCrayons theme
 ├── components/
 │   ├── Layout.tsx            # Fixed full-screen container
 │   ├── Canvas.tsx            # SVG canvas (drawing, zoom, pan, selection)
-│   ├── Toolbar.tsx           # Tool buttons and export options
-│   ├── AIPrompt.tsx          # Gemini AI integration interface
+│   ├── Toolbar.tsx           # Tool buttons, export/import options
 │   ├── PropertiesPanel.tsx   # Element property editor
-│   ├── ColorPicker.tsx       # Color selection UI
+│   ├── ColorPicker.tsx       # Color selection UI with ClaudeCrayons palette
 │   ├── LayersPanel.tsx       # Layer management panel
-│   └── TemplatesPanel.tsx    # Design template selector
+│   └── TemplatesPanel.tsx    # Rich template selector with categories
 └── store/
-    └── documentStore.ts      # Zustand store (all app state)
+    └── documentStore.ts      # Zustand store (all app state + Excalidraw conversion)
 ```
 
 ## Architecture & Patterns
 
 ### State Management
-All application state lives in a single Zustand store (`src/store/documentStore.ts`). This includes the document model (layers, elements), active tool, selection state, viewport transforms, and UI panel visibility. Use the store's setter functions to update state.
+All application state lives in a single Zustand store (`src/store/documentStore.ts`). This includes the document model (layers, elements), active tool, selection state, viewport transforms, UI panel visibility, and Excalidraw import/export functions.
 
 ### Element Model
-Elements use discriminated union types: `PathElement`, `RectElement`, `CircleElement`, `TextElement`. Each has a `type` field for discrimination. Element IDs are generated with `crypto.randomUUID()`.
+Elements use discriminated union types: `PathElement`, `RectElement`, `CircleElement`, `TextElement`, `LineElement`, `GroupElement`. Each has a `type` field for discrimination. Element IDs are generated with `crypto.randomUUID()`.
+
+### Excalidraw Compatibility
+The store includes `exportToExcalidraw()` and `importFromExcalidraw()` functions for full bidirectional compatibility with Excalidraw's JSON format (v2). Element types are mapped between formats (rect<->rectangle, circle<->ellipse, path<->freedraw, line<->line).
 
 ### Rendering
 All graphics are rendered as SVG (not HTML Canvas). The `Canvas.tsx` component renders elements directly as SVG nodes. Export to PNG/JPEG uses an offscreen Canvas 2D context to rasterize the SVG.
+
+### Template System
+Templates are categorized (App, Business, Diagrams, Social, Shapes) and include complete multi-element compositions: iOS App Icon, Mobile Wireframe, Business Card, Presentation Slide, Flowchart, Org Chart, Mind Map, Social Post, Logo Design, Geometric Pattern, Icon Grid, Dashboard Layout, and Star Burst.
 
 ### Component Pattern
 All components are functional React components using hooks. No class components.
@@ -68,20 +72,29 @@ All components are functional React components using hooks. No class components.
 - CSS `env(safe-area-inset-*)` for notch/device cutout support
 - Responsive breakpoints via Tailwind `md:` prefix
 
-## Styling Conventions
+## ClaudeCrayons Design System
 
-- Dark theme: `zinc-900` backgrounds, `zinc-50` text
-- Rounded corners: `rounded-lg` / `rounded-xl`
-- Glass-morphism panels with `backdrop-blur`
-- All styling via Tailwind utility classes inline — no separate CSS files beyond `index.css`
+### Color Palette (defined as CSS custom properties in index.css)
+- **Terracotta**: `#D97757` (primary accent — Anthropic-inspired)
+- **Terracotta Light**: `#E8A87C`
+- **Terracotta Dark**: `#B8583A`
+- **Background**: `#1C1917` (warm black)
+- **Surface**: `#292524` (warm dark gray)
+- **Border**: `#44403C` / `#57534E`
+- **Text**: `#FAFAF9` (warm white)
+- **Text Muted**: `#A8A29E`
+- **Selection**: `rgba(217,119,87,0.2)` with terracotta border
+
+### Styling Conventions
+- Warm, earthy color palette throughout
+- Rounded corners: `rounded-lg` / `rounded-xl` / `rounded-2xl`
+- Glass-morphism panels with `backdrop-blur-md`
+- Dot grid canvas background (terracotta-tinted dots)
+- All styling via Tailwind utility classes using custom `claude-*` color tokens
 
 ## Environment Variables
 
-- `GEMINI_API_KEY` — Required for AI features; injected by AI Studio at runtime
-- `APP_URL` — Application URL; injected by AI Studio
 - `DISABLE_HMR` — Set to disable Hot Module Replacement in dev
-
-These are injected through `vite.config.ts` via `define` and accessed as global constants.
 
 ## TypeScript Configuration
 
@@ -101,7 +114,8 @@ These are injected through `vite.config.ts` via `define` and accessed as global 
 - Always run `npm run lint` after making TypeScript changes to verify type correctness
 - No test framework is configured — do not add test files unless explicitly requested
 - The project is fully client-side; there is no production backend
-- `express` and `better-sqlite3` in dependencies are for optional dev tooling, not core app functionality
 - When modifying the store, maintain the Zustand pattern of immutable state updates
 - SVG path data (`d` attribute) is the core data format for vector shapes — handle with care
-- The AI prompt system sends structured prompts to Gemini and parses SVG path responses
+- Excalidraw import/export lives in `documentStore.ts` — keep conversion functions in sync with the Excalidraw v2 schema
+- Use `claude-*` Tailwind color tokens (e.g., `bg-claude-surface`, `text-claude-terracotta`) for consistent theming
+- Templates should use the ClaudeCrayons color palette for default element colors
