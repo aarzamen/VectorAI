@@ -1,0 +1,5 @@
+{
+  "name": "VectorAI",
+  "description": "A mobile-first PWA vector graphics editor with AI-assisted generation and manual SVG-style editing.",
+  "requestFramePermissions": []
+}
