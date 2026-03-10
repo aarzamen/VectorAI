@@ -6,7 +6,6 @@
 import { useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Canvas } from './components/Canvas';
-import { AIPrompt } from './components/AIPrompt';
 import { Toolbar } from './components/Toolbar';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { LayersPanel } from './components/LayersPanel';
@@ -38,7 +37,6 @@ export default function App() {
   return (
     <Layout>
       <Canvas />
-      <AIPrompt />
       <PropertiesPanel />
       {showLayersPanel && <LayersPanel />}
       {showTemplatesPanel && <TemplatesPanel />}
