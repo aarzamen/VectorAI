@@ -66,7 +66,7 @@ export function AIPrompt() {
   };
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-11/12 max-w-md bg-zinc-800/90 backdrop-blur-md rounded-2xl p-2 shadow-2xl border border-zinc-700/50 flex items-center gap-2 z-50">
+    <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[28rem] bg-zinc-800/90 backdrop-blur-md rounded-2xl p-2 shadow-2xl border border-zinc-700/50 flex items-center gap-2 z-50">
       <input
         type="text"
         value={prompt}

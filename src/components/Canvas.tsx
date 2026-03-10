@@ -19,6 +19,7 @@ export function Canvas() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
+  const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPathId, setCurrentPathId] = useState<string | null>(null);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
@@ -82,11 +83,21 @@ export function Canvas() {
     }
 
     // If clicking on an element, we might want to drag it instead of panning
+    const target = e.target as SVGElement;
     if (
-      e.target !== e.currentTarget &&
-      (e.target as SVGElement).tagName !== "svg" &&
-      (e.target as SVGElement).tagName !== "rect"
+      target !== e.currentTarget &&
+      target.tagName !== "svg" &&
+      target.tagName !== "rect"
     ) {
+      const elementId = target.getAttribute('data-id');
+      if (elementId) {
+        setDraggedElementId(elementId);
+        if (!selectedElementIds.includes(elementId)) {
+          selectElements([elementId]);
+        }
+      } else if (selectedElementIds.length > 0) {
+        setDraggedElementId(selectedElementIds[0]);
+      }
       setIsDraggingElement(true);
     } else {
       setIsDragging(true);
@@ -153,9 +164,9 @@ export function Canvas() {
 
     if (isDragging) {
       setPan({ x: pan.x + dx, y: pan.y + dy });
-    } else if (isDraggingElement && selectedElementIds.length > 0) {
+    } else if (isDraggingElement && draggedElementId) {
       // Drag selected elements
-      const id = selectedElementIds[0];
+      const id = draggedElementId;
       const el = elements[id];
       if (el) {
         updateElement(id, { x: el.x + dx / zoom, y: el.y + dy / zoom });
@@ -178,6 +189,7 @@ export function Canvas() {
     if (newPointers.size === 0) {
       setIsDragging(false);
       setIsDraggingElement(false);
+      setDraggedElementId(null);
       setIsDrawing(false);
       setCurrentPathId(null);
     }
@@ -188,6 +200,7 @@ export function Canvas() {
     const isSelected = selectedElementIds.includes(element.id);
     const commonProps = {
       key: element.id,
+      'data-id': element.id,
       transform: `translate(${element.x}, ${element.y}) rotate(${element.rotation})`,
       fill: element.fill,
       stroke: isSelected ? "#3b82f6" : element.stroke, // Highlight if selected

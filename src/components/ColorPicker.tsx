@@ -70,7 +70,7 @@ export function ColorPicker({ color, onChange, label }: ColorPickerProps) {
       {isOpen && (
         <div 
           ref={popoverRef}
-          className="absolute top-full left-0 mt-2 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl z-50 flex flex-col gap-3"
+          className="absolute bottom-full right-0 md:bottom-auto md:top-full md:left-0 mb-2 md:mb-0 md:mt-2 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl z-50 flex flex-col gap-3"
           style={{ width: '220px' }}
         >
           <div className="flex justify-between items-center mb-1">

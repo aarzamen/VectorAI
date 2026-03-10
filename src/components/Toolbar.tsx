@@ -171,14 +171,14 @@ export function Toolbar() {
   };
 
   const getBtnClass = (tool: string) => 
-    `p-3 rounded-xl transition-colors ${activeTool === tool ? 'bg-blue-600 text-white' : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-white'}`;
+    `p-3 rounded-xl transition-colors shrink-0 ${activeTool === tool ? 'bg-blue-600 text-white' : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-white'}`;
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-zinc-800/90 backdrop-blur-md rounded-2xl p-2 shadow-2xl border border-zinc-700/50 flex items-center gap-2 z-50">
+    <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)] bg-zinc-800/90 backdrop-blur-md rounded-2xl p-2 shadow-2xl border border-zinc-700/50 flex items-center gap-2 z-50 overflow-x-auto [&::-webkit-scrollbar]:hidden">
       <button onClick={() => setActiveTool('select')} className={getBtnClass('select')}>
         <MousePointer2 className="w-5 h-5" />
       </button>
-      <div className="w-px h-6 bg-zinc-700 mx-1" />
+      <div className="w-px h-6 bg-zinc-700 mx-1 shrink-0" />
       <button onClick={() => setActiveTool('pen')} className={getBtnClass('pen')}>
         <PenTool className="w-5 h-5" />
       </button>
@@ -191,35 +191,35 @@ export function Toolbar() {
       <button onClick={handleAddText} className={getBtnClass('text')}>
         <TypeIcon className="w-5 h-5" />
       </button>
-      <div className="w-px h-6 bg-zinc-700 mx-1" />
+      <div className="w-px h-6 bg-zinc-700 mx-1 shrink-0" />
       <button 
         onClick={() => setShowLayersPanel(!showLayersPanel)} 
-        className={`p-3 rounded-xl transition-colors ${showLayersPanel ? 'bg-blue-600 text-white' : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-white'}`} 
+        className={`p-3 rounded-xl transition-colors shrink-0 ${showLayersPanel ? 'bg-blue-600 text-white' : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-white'}`} 
         title="Layers"
       >
         <Layers className="w-5 h-5" />
       </button>
       <button 
         onClick={() => setShowTemplatesPanel(!showTemplatesPanel)} 
-        className={`p-3 rounded-xl transition-colors ${showTemplatesPanel ? 'bg-blue-600 text-white' : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-white'}`} 
+        className={`p-3 rounded-xl transition-colors shrink-0 ${showTemplatesPanel ? 'bg-blue-600 text-white' : 'hover:bg-zinc-700/50 text-zinc-300 hover:text-white'}`} 
         title="Templates"
       >
         <LayoutTemplate className="w-5 h-5" />
       </button>
-      <div className="w-px h-6 bg-zinc-700 mx-1" />
-      <button onClick={clearDocument} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors" title="New Project">
+      <div className="w-px h-6 bg-zinc-700 mx-1 shrink-0" />
+      <button onClick={clearDocument} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors shrink-0" title="New Project">
         <FilePlus className="w-5 h-5" />
       </button>
-      <button onClick={handleSave} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors" title="Save Project">
+      <button onClick={handleSave} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors shrink-0" title="Save Project">
         <FolderOpen className="w-5 h-5" />
       </button>
-      <button onClick={handleExportSVG} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors" title="Export SVG">
+      <button onClick={handleExportSVG} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors shrink-0" title="Export SVG">
         <Download className="w-5 h-5" />
       </button>
-      <button onClick={handleExportPNG} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors" title="Export PNG">
+      <button onClick={handleExportPNG} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors shrink-0" title="Export PNG">
         <ImageIcon className="w-5 h-5" />
       </button>
-      <button onClick={handleExportJPEG} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors" title="Export JPEG">
+      <button onClick={handleExportJPEG} className="p-3 rounded-xl hover:bg-zinc-700/50 text-zinc-300 hover:text-white transition-colors shrink-0" title="Export JPEG">
         <FileImage className="w-5 h-5" />
       </button>
     </div>

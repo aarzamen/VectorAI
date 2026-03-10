@@ -21,7 +21,7 @@ export function PropertiesPanel() {
   };
 
   return (
-    <div className="absolute right-4 top-20 w-64 bg-zinc-800/90 backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-zinc-700/50 z-50 flex flex-col gap-4">
+    <div className="absolute left-4 right-4 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+5rem)] md:bottom-auto md:top-20 md:left-auto md:right-4 md:w-64 bg-zinc-800/90 backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-zinc-700/50 z-40 flex flex-col gap-4 max-h-[40vh] md:max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Properties</h3>
         <button onClick={handleDelete} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
