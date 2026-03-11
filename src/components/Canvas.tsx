@@ -14,6 +14,10 @@ export function Canvas() {
     updateElement,
     activeTool,
     addElement,
+    width: canvasWidth,
+    height: canvasHeight,
+    setShowPropertiesPanel,
+    pushHistory,
   } = useDocumentStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -111,6 +115,7 @@ export function Canvas() {
         setDraggedElementId(elementId);
         if (!selectedElementIds.includes(elementId)) {
           selectElements([elementId]);
+          setShowPropertiesPanel(true);
         }
       } else if (selectedElementIds.length > 0) {
         setDraggedElementId(selectedElementIds[0]);
@@ -200,6 +205,11 @@ export function Canvas() {
       setInitialPinchZoom(null);
     }
 
+    // Push history after drag/draw ends
+    if (isDraggingElement || isDrawing || isDrawingLine) {
+      pushHistory();
+    }
+
     if (newPointers.size === 0) {
       setIsDragging(false);
       setIsDraggingElement(false);
@@ -227,6 +237,7 @@ export function Canvas() {
         if (isLocked) return;
         e.stopPropagation();
         selectElements([element.id]);
+        setShowPropertiesPanel(true);
       },
       className: `${isLocked ? 'cursor-default' : 'cursor-pointer'} transition-colors duration-150`,
     };
@@ -315,16 +326,43 @@ export function Canvas() {
         }}
       >
         <defs>
+          {/* Fine dot grid */}
           <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <circle cx="12" cy="12" r="0.6" fill="rgba(217,119,87,0.1)" />
+            <circle cx="12" cy="12" r="0.5" fill="rgba(217,119,87,0.08)" />
           </pattern>
-          <pattern id="majorGrid" width="96" height="96" patternUnits="userSpaceOnUse">
+          {/* Line grid */}
+          <pattern id="lineGrid" width="96" height="96" patternUnits="userSpaceOnUse">
             <rect width="96" height="96" fill="url(#dotGrid)" />
-            <circle cx="0" cy="0" r="1.2" fill="rgba(217,119,87,0.15)" />
+            <line x1="0" y1="0" x2="96" y2="0" stroke="rgba(217,119,87,0.06)" strokeWidth="0.5" />
+            <line x1="0" y1="0" x2="0" y2="96" stroke="rgba(217,119,87,0.06)" strokeWidth="0.5" />
+          </pattern>
+          {/* Major grid with crosses at intersections */}
+          <pattern id="majorGrid" width="480" height="480" patternUnits="userSpaceOnUse">
+            <rect width="480" height="480" fill="url(#lineGrid)" />
+            <line x1="0" y1="0" x2="480" y2="0" stroke="rgba(217,119,87,0.1)" strokeWidth="0.5" />
+            <line x1="0" y1="0" x2="0" y2="480" stroke="rgba(217,119,87,0.1)" strokeWidth="0.5" />
           </pattern>
         </defs>
-        <rect width="10000" height="10000" x="-5000" y="-5000" fill="url(#majorGrid)" />
 
+        {/* Infinite grid background */}
+        <rect width="20000" height="20000" x="-10000" y="-10000" fill="url(#majorGrid)" />
+
+        {/* Canvas boundary - faint dotted outline, NOT a clipping mask */}
+        <rect
+          data-canvas-boundary="true"
+          x="0"
+          y="0"
+          width={canvasWidth}
+          height={canvasHeight}
+          fill="none"
+          stroke="rgba(217,119,87,0.25)"
+          strokeWidth={1.5 / zoom}
+          strokeDasharray={`${6 / zoom} ${4 / zoom}`}
+          rx={4 / zoom}
+          ry={4 / zoom}
+        />
+
+        {/* All elements render freely - no clipping */}
         {layers.map(
           (layer) =>
             layer.visible && (

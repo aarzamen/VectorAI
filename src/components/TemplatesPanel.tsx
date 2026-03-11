@@ -26,8 +26,15 @@ interface Template {
 }
 
 export function TemplatesPanel() {
-  const { addElement, clearDocument } = useDocumentStore();
+  const { addElement, clearDocument, fitToContent, setShowTemplatesPanel } = useDocumentStore();
   const [activeCategory, setActiveCategory] = useState('all');
+
+  const applyAndFit = (applyFn: () => void) => {
+    applyFn();
+    setShowTemplatesPanel(false);
+    // Fit to content after elements are added
+    setTimeout(() => fitToContent(), 50);
+  };
 
   const categories = [
     { id: 'all', label: 'All' },
@@ -696,7 +703,7 @@ export function TemplatesPanel() {
         {filteredTemplates.map(template => (
           <button
             key={template.id}
-            onClick={template.apply}
+            onClick={() => applyAndFit(template.apply)}
             className="flex items-center gap-3 p-3 rounded-xl hover:bg-claude-surface-hover text-claude-text-muted hover:text-claude-text transition-all text-left group"
           >
             <div

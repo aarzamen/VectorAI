@@ -66,6 +66,11 @@ export interface Layer {
 
 export type ToolType = 'select' | 'pen' | 'rect' | 'circle' | 'text' | 'line';
 
+interface HistorySnapshot {
+  layers: Layer[];
+  elements: Record<string, CanvasElement>;
+}
+
 export interface DocumentState {
   id: string;
   name: string;
@@ -80,6 +85,14 @@ export interface DocumentState {
   activeTool: ToolType;
   showLayersPanel: boolean;
   showTemplatesPanel: boolean;
+  showExportDialog: boolean;
+  showPropertiesPanel: boolean;
+
+  // Undo/Redo
+  history: HistorySnapshot[];
+  historyIndex: number;
+  canUndo: boolean;
+  canRedo: boolean;
 
   // Actions
   addElement: (element: CanvasElement, layerId?: string) => void;
@@ -98,12 +111,18 @@ export interface DocumentState {
   setActiveTool: (tool: ToolType) => void;
   setShowLayersPanel: (show: boolean) => void;
   setShowTemplatesPanel: (show: boolean) => void;
+  setShowExportDialog: (show: boolean) => void;
+  setShowPropertiesPanel: (show: boolean) => void;
   loadDocument: (doc: Partial<DocumentState>) => void;
   saveDocument: () => Promise<void>;
   clearDocument: () => void;
   setDocumentName: (name: string) => void;
   exportToExcalidraw: () => ExcalidrawFile;
   importFromExcalidraw: (file: ExcalidrawFile) => void;
+  undo: () => void;
+  redo: () => void;
+  pushHistory: () => void;
+  fitToContent: () => void;
 }
 
 // --- Excalidraw types ---
@@ -440,23 +459,27 @@ function excalidrawToElement(exEl: ExcalidrawElement): CanvasElement | null {
 
 // --- Store ---
 
+const MAX_HISTORY = 50;
+
 const createInitialState = () => {
   const initialLayerId = uuidv4();
+  const initialLayers = [
+    {
+      id: initialLayerId,
+      name: 'Layer 1',
+      visible: true,
+      locked: false,
+      elementIds: [] as string[],
+    },
+  ];
+  const initialElements = {} as Record<string, CanvasElement>;
   return {
     id: uuidv4(),
     name: 'Untitled Project',
     width: 1024,
     height: 1024,
-    layers: [
-      {
-        id: initialLayerId,
-        name: 'Layer 1',
-        visible: true,
-        locked: false,
-        elementIds: [],
-      },
-    ],
-    elements: {} as Record<string, CanvasElement>,
+    layers: initialLayers,
+    elements: initialElements,
     selectedElementIds: [] as string[],
     activeLayerId: initialLayerId,
     zoom: 1,
@@ -464,6 +487,12 @@ const createInitialState = () => {
     activeTool: 'select' as ToolType,
     showLayersPanel: false,
     showTemplatesPanel: false,
+    showExportDialog: false,
+    showPropertiesPanel: true,
+    history: [{ layers: initialLayers, elements: initialElements }] as HistorySnapshot[],
+    historyIndex: 0,
+    canUndo: false,
+    canRedo: false,
   };
 };
 
@@ -507,6 +536,8 @@ export const useDocumentStore = create<DocumentState>((setStore, getStore) => ({
         selectedElementIds: [element.id],
       };
     });
+    // Push history after element added
+    getStore().pushHistory();
   },
 
   updateElement: (id, updates) => {
@@ -647,6 +678,7 @@ export const useDocumentStore = create<DocumentState>((setStore, getStore) => ({
         selectedElementIds: state.selectedElementIds.filter((id) => !ids.includes(id)),
       };
     });
+    getStore().pushHistory();
   },
 
   selectElements: (ids) => {
@@ -671,6 +703,115 @@ export const useDocumentStore = create<DocumentState>((setStore, getStore) => ({
 
   setShowTemplatesPanel: (show) => {
     setStore({ showTemplatesPanel: show, showLayersPanel: show ? false : getStore().showLayersPanel });
+  },
+
+  setShowExportDialog: (show) => {
+    setStore({ showExportDialog: show });
+  },
+
+  setShowPropertiesPanel: (show) => {
+    setStore({ showPropertiesPanel: show });
+  },
+
+  pushHistory: () => {
+    setStore((state) => {
+      const snapshot: HistorySnapshot = {
+        layers: JSON.parse(JSON.stringify(state.layers)),
+        elements: JSON.parse(JSON.stringify(state.elements)),
+      };
+      const newHistory = state.history.slice(0, state.historyIndex + 1);
+      newHistory.push(snapshot);
+      if (newHistory.length > MAX_HISTORY) newHistory.shift();
+      const newIndex = newHistory.length - 1;
+      return {
+        history: newHistory,
+        historyIndex: newIndex,
+        canUndo: newIndex > 0,
+        canRedo: false,
+      };
+    });
+  },
+
+  undo: () => {
+    setStore((state) => {
+      if (state.historyIndex <= 0) return state;
+      const newIndex = state.historyIndex - 1;
+      const snapshot = state.history[newIndex];
+      return {
+        layers: JSON.parse(JSON.stringify(snapshot.layers)),
+        elements: JSON.parse(JSON.stringify(snapshot.elements)),
+        historyIndex: newIndex,
+        canUndo: newIndex > 0,
+        canRedo: true,
+        selectedElementIds: [],
+      };
+    });
+  },
+
+  redo: () => {
+    setStore((state) => {
+      if (state.historyIndex >= state.history.length - 1) return state;
+      const newIndex = state.historyIndex + 1;
+      const snapshot = state.history[newIndex];
+      return {
+        layers: JSON.parse(JSON.stringify(snapshot.layers)),
+        elements: JSON.parse(JSON.stringify(snapshot.elements)),
+        historyIndex: newIndex,
+        canUndo: true,
+        canRedo: newIndex < state.history.length - 1,
+        selectedElementIds: [],
+      };
+    });
+  },
+
+  fitToContent: () => {
+    const state = getStore();
+    const allElements = Object.values(state.elements);
+    if (allElements.length === 0) return;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const el of allElements) {
+      let elMinX = el.x, elMinY = el.y, elMaxX = el.x, elMaxY = el.y;
+      if (el.type === 'rect') {
+        elMaxX = el.x + el.width;
+        elMaxY = el.y + el.height;
+      } else if (el.type === 'circle') {
+        elMinX = el.x - el.radius;
+        elMinY = el.y - el.radius;
+        elMaxX = el.x + el.radius;
+        elMaxY = el.y + el.radius;
+      } else if (el.type === 'text') {
+        elMaxX = el.x + el.text.length * el.fontSize * 0.6;
+        elMaxY = el.y + el.fontSize;
+      } else if (el.type === 'line') {
+        elMinX = Math.min(el.x, el.x2);
+        elMinY = Math.min(el.y, el.y2);
+        elMaxX = Math.max(el.x, el.x2);
+        elMaxY = Math.max(el.y, el.y2);
+      }
+      minX = Math.min(minX, elMinX);
+      minY = Math.min(minY, elMinY);
+      maxX = Math.max(maxX, elMaxX);
+      maxY = Math.max(maxY, elMaxY);
+    }
+
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    if (contentW <= 0 || contentH <= 0) return;
+
+    const viewW = window.innerWidth;
+    const viewH = window.innerHeight;
+    const padding = 80;
+    const zoomX = (viewW - padding * 2) / contentW;
+    const zoomY = (viewH - padding * 2) / contentH;
+    const newZoom = Math.min(zoomX, zoomY, 2);
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const panX = viewW / 2 - centerX * newZoom;
+    const panY = viewH / 2 - centerY * newZoom;
+
+    setStore({ zoom: newZoom, pan: { x: panX, y: panY } });
   },
 
   loadDocument: (doc) => {
@@ -759,5 +900,8 @@ export const useDocumentStore = create<DocumentState>((setStore, getStore) => ({
       zoom: 1,
       pan: { x: 0, y: 0 },
     });
+    // Fit imported content to viewport
+    setTimeout(() => getStore().fitToContent(), 50);
+    getStore().pushHistory();
   },
 }));
