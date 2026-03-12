@@ -6,7 +6,7 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/VectorAI/',
+    base: process.env.GITHUB_PAGES === 'true' ? '/VectorAI/' : '/',
     plugins: [react(), tailwindcss()],
     define: {},
     resolve: {
